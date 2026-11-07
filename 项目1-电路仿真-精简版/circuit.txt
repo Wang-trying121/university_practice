@@ -1,0 +1,5 @@
+OR chipX
+XOR chipY
+NOT chipZ
+CONNECT chipX chipY
+CONNECT chipY chipZ
