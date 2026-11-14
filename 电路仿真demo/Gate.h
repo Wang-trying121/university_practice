@@ -8,6 +8,8 @@
 //   自己身上的 inputa/inputb（没接线的“悬空脚”），要么来自另一个门——
 //   用 Gate* 指针挂在 inputsourceA/inputsourceB 上，指针就相当于现实里的导线。
 //   因为兄弟类型都派生自 Gate，所以一根“线”可以接任何门的输出，这就是多态。
+//   另外每个门还带一个 evalState 状态机（0=没算 / 1=正在算 / 2=算完），
+//   由 evaluate() 自己维护，用来做环路检测和结果缓存（见 prepare.cpp）。
 // ============================================================================
 #ifndef GATES_H
 #define GATES_H
@@ -36,23 +38,29 @@ class Gate {
 
 		bool getRealA();     // 取 A 脚的真实输入：接了线就递归问上游，没接就用 inputa
 		bool getRealB();     // 取 B 脚的真实输入：同上，逻辑与 A 脚对称
-		bool ifsourceGate(); // 判断本门是否“源头门”（只看 A 脚是否悬空，详见 .cpp 注释）
+		bool ifsourceGate(); // 判断是否“源头门”：A、B 两个脚都悬空才算（没有任何上游）
 
 		void setInput(bool a, bool b);   // 给源头门手动加测试激励（写 inputa/inputb）
 		bool getOutput();                // 读输出，并在这一步完成故障注入（看 faultType）
 		std::string name;                // 门名，对应 circuit.txt 里写的名字，如 chipX
 		int faultType;                   // 故障类型：0=正常，1=卡在0（恒输出0），2=卡在1（恒输出1）
 		virtual void evaluate() = 0;     // 纯虚函数：各门自己实现“怎么算 output”，故 Gate 不能直接实例化
+		// ---- 求值状态机：给递归求值做“环路检测 + 结果缓存” ----
+		// evalState 含义：0 = 还没算过；1 = 正在算（递归尚未返回）；2 = 已经算完，结果可复用
 		int evalState = 0;
+		// 供上游门查询本门当前状态（getRealA / getRealB 靠它判断是否成环、能否直接复用结果）
 		int get_evalState() {
 			return evalState;
 		}
+		// 把状态复位成 0。每开始一个新的测试向量前，所有门都要 Reset() 一遍
 		void Reset() {
 			evalState = 0;
 		}
+		// 直接设置 A 脚的自带电平：给“悬空脚”打测试激励用
 		void setInputA(bool val) {
 			inputa = val;
 		}
+		// 直接设置 B 脚的自带电平：同上
 		void setInputB(bool val) {
 			inputb = val;
 		}
