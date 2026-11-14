@@ -1,4 +1,8 @@
 # C++ 电路仿真系统
+[![Language](https://img.shields.io/badge/Language-C%2B%2B14-blue.svg)](https://isocpp.org/)
+[![Build](https://img.shields.io/badge/Build-g%2B%2B%20Passing-green.svg)]()
+[![Warnings](https://img.shields.io/badge/Warnings-Zero-orange.svg)]()
+[![AI](https://img.shields.io/badge/AI_for_EDA-Exploring-purple.svg)]()
 
 这是一个基于**C++**的逻辑电路仿真程序，实现了与门、或门、否门、异或门的连接与故障测试。
 
