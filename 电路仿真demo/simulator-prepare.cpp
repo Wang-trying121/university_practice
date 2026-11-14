@@ -9,13 +9,14 @@
 // ============================================================================
 #include "Gate.h"
 #include<iostream>
+using namespace std;
 
 // ----------------------------------------------------------------------------
 // 构造 / 析构
 // ----------------------------------------------------------------------------
 
 Gate::Gate ():
-inputa(false),inputb(false),output(false) ,inputsourceA(nullptr), inputsourceB(nullptr),faultType(0) {}
+	inputa(false),inputb(false),output(false) ,inputsourceA(nullptr), inputsourceB(nullptr),faultType(0) {}
 // 初始化列表从左到右赋值：三个电平默认 false（未通电），两个引脚指针默认 nullptr
 // （代表悬空/没接线），faultType 默认 0（正常，不注入故障）。
 
@@ -48,18 +49,42 @@ bool Gate::getRealA() {
 	if(inputsourceA == nullptr) {//没有连线就用默认值
 		return inputa;
 	} else {
-		inputsourceA->evaluate();//有连线向上一个器件逼问
-		return inputsourceA->getOutput();
+		int st = inputsourceA->get_evalState();
+		if(st == 0) {
+			inputsourceA->evaluate();//有连线向上一个器件逼问
+			return inputsourceA->getOutput();
+		}else if(st == 1){
+			cout<<"警告：出现死循环"<<endl;
+			return 0;
+		}else if(st == 2){
+			return inputsourceA->getOutput();
+		}else{
+			cout<<"程序出错，请检查getReal函数"<<endl;
+			return 0;
+		}
+
 	}
 }
 
 // getRealB()：B 脚取值，逻辑与 getRealA() 完全对称，只是少写了注释。
 bool Gate::getRealB() {
-	if(inputsourceB == nullptr) {
+	if(inputsourceB == nullptr) {//没有连线就用默认值
 		return inputb;
 	} else {
-		inputsourceB->evaluate();
-		return inputsourceB->getOutput();
+		int st = inputsourceB->get_evalState();
+		if(st == 0) {
+			inputsourceB->evaluate();//有连线向上一个器件逼问
+			return inputsourceB->getOutput();
+		}else if(st == 1){
+			cout<<"警告：出现死循环"<<endl;
+			return 0;
+		}else if(st == 2){
+			return inputsourceB->getOutput();
+		}else{
+			cout<<"程序出错，请检查getReal函数"<<endl;
+			return 0;
+		}
+
 	}
 }
 
@@ -70,14 +95,14 @@ bool Gate::getRealB() {
 // 用途：找出电路里“没有上游”的门，测试激励必须直接打在它们身上。
 // 注意：这里只检查了 A 脚是否悬空，B 脚没检查。当前网表里源头门两个脚都没接线，
 // 所以判断结果是对的；但如果某个门 A 接了线、B 悬空，它会被误判成源头门。
-bool Gate::ifsourceGate(){
+bool Gate::ifsourceGate() {
 	//判断引脚A是否为空
-	if (inputsourceA == nullptr){
+	if (inputsourceA == nullptr && inputsourceB == nullptr) {
 		return 1;
-	} else{
+	} else {
 		return 0;
 	}
-	 
+
 }
 
 // ----------------------------------------------------------------------------
@@ -100,13 +125,13 @@ void Gate::setInput(bool a,bool b) {
 // 因为下游门只能通过 getOutput() 取上游的值，所以故障会顺着连线自然传播到终端，
 // 这正是后面算“测试向量命中率”的基础。
 bool Gate::getOutput() {
-	if (faultType == 0){
+	if (faultType == 0) {
 		return output;
-	} else if(faultType == 1){
+	} else if(faultType == 1) {
 		return 0;
-	}else if (faultType == 2){
+	} else if (faultType == 2) {
 		return 1;
-	}else{
+	} else {
 		return output;
 	}
 }
@@ -115,18 +140,28 @@ bool Gate::getOutput() {
 // 各门的求值实现：只有一行——按自己的真值表达式更新 output
 // ----------------------------------------------------------------------------
 
-void AndGate::evaluate(){   // 与门：两个输入都为 1 才输出 1
+void AndGate::evaluate() {  // 与门：两个输入都为 1 才输出 1
+	evalState = 1;
 	output = getRealA()&&getRealB();
+	evalState = 2;
 }
-void OrGate::evaluate(){    // 或门：只要有一个输入为 1 就输出 1
+void OrGate::evaluate() {   // 或门：只要有一个输入为 1 就输出 1
+	evalState = 1;
 	output = getRealA()||getRealB();
+	evalState = 2;
 }
-void NotGate::evaluate(){   // 非门：取反（B 脚不参与计算）
+void NotGate::evaluate() {  // 非门：取反（B 脚不参与计算）
+	evalState = 1;
 	output = !getRealA();
+	evalState = 2;
 }
-void XorGate::evaluate(){   // 异或门：两输入不同输出 1，相同输出 0
+void XorGate::evaluate() {  // 异或门：两输入不同输出 1，相同输出 0
+	evalState = 1;
 	output = !(getRealA() == getRealB());
+	evalState = 2;
 }
-void AorGate::evaluate(){   // 同或门 XNOR：两输入相同输出 1（异或取反）
+void AorGate::evaluate() {  // 同或门 XNOR：两输入相同输出 1（异或取反）
+	evalState = 1;
 	output = (getRealA() == getRealB());
+	evalState = 2;
 }

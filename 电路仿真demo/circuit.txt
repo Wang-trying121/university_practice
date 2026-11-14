@@ -1,0 +1,5 @@
+AND g1
+OR g2
+XOR g3
+CONNECT g1 g3 inA
+CONNECT g2 g3 inB
